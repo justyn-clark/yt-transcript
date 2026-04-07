@@ -1,21 +1,53 @@
-"""Obsidian vault note writer."""
+"""Markdown note writer for transcript export."""
 
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ..config import settings
+from .errors import TranscriptError
 from .models import TranscriptResult
 from .normalize import format_timestamp, sanitize_title
 
 logger = logging.getLogger(__name__)
 
 
-def write_vault_note(result: TranscriptResult) -> str:
-    """Write a transcript note to the Obsidian vault.
+def validate_notes_dir() -> Path:
+    """Validate that notes_dir is configured and return it.
 
-    Returns the absolute path to the created note.
+    Raises TranscriptError if notes_dir is not set.
     """
+    if settings.notes_dir is None:
+        raise TranscriptError(
+            error_type="notes_not_configured",
+            message="Markdown note export requested but NOTES_DIR is not configured. "
+            "Set YT_TRANSCRIPT_NOTES_DIR to a directory path.",
+        )
+    return settings.notes_dir
+
+
+def check_notes_dir_writable() -> bool:
+    """Check whether the configured notes directory is writable."""
+    if settings.notes_dir is None:
+        return False
+    try:
+        target = settings.notes_dir / settings.notes_subdir
+        target.mkdir(parents=True, exist_ok=True)
+        return True
+    except OSError:
+        return False
+
+
+def write_note(result: TranscriptResult, notes_dir: Path | None = None) -> str:
+    """Write a transcript note as a markdown file.
+
+    Uses the provided notes_dir, falling back to settings.notes_dir.
+    Returns the absolute path to the created note.
+
+    Raises TranscriptError if no notes directory is available.
+    """
+    target_dir = notes_dir or validate_notes_dir()
+
     now = datetime.now(timezone.utc)
     date_str = now.strftime("%Y-%m-%d")
     year_str = now.strftime("%Y")
@@ -24,10 +56,10 @@ def write_vault_note(result: TranscriptResult) -> str:
     safe_title = sanitize_title(title)
     filename = f"{date_str} - {safe_title}.md"
 
-    vault_dir = settings.vault_path / settings.vault_transcript_dir / year_str
-    vault_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = target_dir / settings.notes_subdir / year_str
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    note_path = vault_dir / filename
+    note_path = out_dir / filename
 
     # Build frontmatter
     published = ""
@@ -77,7 +109,7 @@ tags:
     content = frontmatter + "\n\n" + body
     note_path.write_text(content, encoding="utf-8")
 
-    logger.info("Vault note written: %s", note_path)
+    logger.info("Note written: %s", note_path)
     return str(note_path)
 
 

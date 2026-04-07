@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "jcn-transcript"
+name = "yt-transcript"
 version = "0.1.0"
-description = "Local-first YouTube transcript ingestion service for JCN"
+description = "Local-first YouTube transcript ingestion service"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.110",
@@ -22,13 +22,26 @@ dependencies = [
 ]
 
 [project.scripts]
-jcn-transcript = "jcn_transcript.cli.main:main"
+yt-transcript = "yt_transcript.cli.main:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "ruff>=0.4",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

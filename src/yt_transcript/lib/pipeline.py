@@ -7,13 +7,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..config import settings
-from ..db.crud import set_vault_path, upsert_transcript
+from ..db.crud import set_notes_path, upsert_transcript
 from ..db.engine import async_session
 from ..lib import captions, errors, ytdlp
 from ..lib.models import IngestResult, TranscriptResult
 from ..lib.normalize import clean_text
+from ..lib.notes import write_note
 from ..lib.url import canonical_url, extract_video_id
-from ..lib.vault import write_vault_note
 from ..workers.asr_client import asr_result_to_transcript, transcribe_audio
 
 logger = logging.getLogger(__name__)
@@ -21,11 +21,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PipelineOptions:
-    persist_to_vault: bool = True
-    persist_to_pg: bool = True
-    embed: bool = False
+    persist_to_db: bool = True
+    persist_notes: bool | None = None  # None = auto (on when notes_dir is configured)
     open_note: bool = False
     force_asr: bool = False
+
+    @property
+    def should_persist_notes(self) -> bool:
+        if self.persist_notes is not None:
+            return self.persist_notes
+        return settings.notes_enabled
 
 
 @dataclass
@@ -94,14 +99,12 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
         asr_result = await transcribe_audio(video_id, audio_path)
         if asr_result.status != "done":
             log.stage("asr_transcribe", time.monotonic() - t0, status="failed", detail=asr_result.error)
-            # Clean up audio
             _cleanup_tmp(video_id)
             raise errors.asr_failed(video_id, asr_result.error)
 
         transcript = asr_result_to_transcript(video_id, asr_result)
         log.stage("asr_transcribe", time.monotonic() - t0)
 
-        # Clean up audio after successful ASR
         _cleanup_tmp(video_id)
 
     if transcript is None:
@@ -128,42 +131,53 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
 
     # Step 5: Persist to Postgres
     db_id = ""
-    if opts.persist_to_pg:
+    db_status = "skipped"
+    if opts.persist_to_db:
         t0 = time.monotonic()
         try:
             async with async_session() as session:
                 item = await upsert_transcript(session, transcript)
                 db_id = str(item.id)
                 log.db_id = db_id
-            log.stage("persist_pg", time.monotonic() - t0)
+            db_status = "ok"
+            log.stage("persist_db", time.monotonic() - t0)
         except Exception as e:
-            log.stage("persist_pg", time.monotonic() - t0, status="failed", detail=str(e))
+            db_status = "failed"
+            log.stage("persist_db", time.monotonic() - t0, status="failed", detail=str(e))
             raise errors.db_write_failed(str(e)) from e
 
-    # Step 7: Write vault note
-    vault_path = ""
-    if opts.persist_to_vault:
+    # Step 6: Write markdown note
+    notes_path = ""
+    notes_status = "skipped"
+    if opts.should_persist_notes:
         t0 = time.monotonic()
         try:
-            vault_path = write_vault_note(transcript)
-            log.note_path = vault_path
-            log.stage("write_vault", time.monotonic() - t0)
+            notes_path = write_note(transcript)
+            log.note_path = notes_path
+            notes_status = "ok"
+            log.stage("write_notes", time.monotonic() - t0)
 
-            # Update DB with vault path
+            # Update DB with note path
             if db_id:
-                async with async_session() as session:
-                    await set_vault_path(session, item.id, vault_path)
+                try:
+                    async with async_session() as session:
+                        await set_notes_path(session, item.id, notes_path)
+                except Exception as e:
+                    logger.warning("Failed to update DB with note path: %s", e)
         except errors.TranscriptError:
+            notes_status = "failed"
             raise
         except Exception as e:
-            log.stage("write_vault", time.monotonic() - t0, status="failed", detail=str(e))
-            raise errors.vault_write_failed(str(vault_path), str(e)) from e
+            notes_status = "failed"
+            log.stage("write_notes", time.monotonic() - t0, status="failed", detail=str(e))
+            raise errors.notes_write_failed(str(notes_path), str(e)) from e
 
     # Open note if requested
-    if opts.open_note and vault_path:
+    if opts.open_note and notes_path:
         import subprocess
+
         try:
-            subprocess.Popen(["open", vault_path])
+            subprocess.Popen(["open", notes_path])
         except Exception:
             pass
 
@@ -172,7 +186,11 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
 
     logger.info(
         "Ingestion complete: job=%s video=%s method=%s segments=%d time=%.1fs",
-        log.job_id, video_id, transcript.retrieval_method, len(transcript.segments), log.total_seconds,
+        log.job_id,
+        video_id,
+        transcript.retrieval_method,
+        len(transcript.segments),
+        log.total_seconds,
     )
 
     return IngestResult(
@@ -182,10 +200,12 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
         status="done",
         retrieval_method=transcript.retrieval_method,
         language=transcript.language,
-        vault_path=vault_path or None,
         segment_count=len(transcript.segments),
         title=transcript.title,
         url=canonical_url(video_id),
+        db_status=db_status,
+        notes_status=notes_status,
+        notes_path=notes_path or None,
     )
 
 

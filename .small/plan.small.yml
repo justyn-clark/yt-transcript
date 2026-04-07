@@ -1,88 +1,33 @@
 small_version: "1.0.0"
-owner: "agent"
+owner: agent
 tasks:
-  - id: "scaffold"
-    title: "Project scaffold, venv, dependencies"
-    steps:
-      - "Create project structure under src/jcn_transcript/"
-      - "Set up Python 3.13 venv with FastAPI, SQLAlchemy, youtube-transcript-api, yt-dlp, click"
-      - "Create pyproject.toml with CLI entrypoint"
-    acceptance:
-      - "pip install -e . succeeds"
-      - "jcn-transcript --help works"
-
-  - id: "database"
-    title: "Postgres schema and migrations"
-    steps:
-      - "Start postgresql@18"
-      - "Create jcn_transcript database"
-      - "Define SQLAlchemy models: media_items, transcript_segments, transcript_embeddings"
-      - "Initialize Alembic and run initial migration"
-    acceptance:
-      - "All 3 tables exist in Postgres"
-
-  - id: "extraction"
-    title: "Core transcript extraction library"
-    steps:
-      - "URL parser with all YouTube formats"
-      - "youtube-transcript-api caption fetcher (manual + auto captions)"
-      - "yt-dlp subtitle fallback (VTT parse)"
-      - "yt-dlp metadata fetcher"
-      - "ASR worker client for Mac Studio"
-    acceptance:
-      - "Manual captions retrieved for videos that have them"
-      - "yt-dlp fallback works when API fails"
-
-  - id: "pipeline"
-    title: "Ingestion pipeline orchestrator"
-    steps:
-      - "Orchestrate URL resolve -> metadata -> captions -> normalize -> persist -> vault write"
-      - "Upsert logic for duplicate video IDs"
-      - "Structured error handling with typed errors"
-    acceptance:
-      - "Full pipeline succeeds end-to-end"
-      - "Duplicate ingestion returns same DB ID"
-
-  - id: "vault"
-    title: "Obsidian vault writer"
-    steps:
-      - "Write markdown notes with YAML frontmatter"
-      - "Timestamped transcript body"
-      - "Year-based directory organization"
-    acceptance:
-      - "Vault note created with correct frontmatter and transcript"
-
-  - id: "cli"
-    title: "CLI entrypoint"
-    steps:
-      - "Click-based CLI with youtube subcommand"
-      - "Flags: --force-asr, --no-embed, --no-vault, --no-db, --open-note, --json"
-    acceptance:
-      - "CLI ingests videos and returns structured output"
-
-  - id: "api"
-    title: "HTTP API"
-    steps:
-      - "FastAPI app with POST /v1/transcripts/youtube"
-      - "GET /v1/transcripts/{id} and /v1/transcripts/by-source/{video_id}"
-      - "Health check endpoint"
-    acceptance:
-      - "All endpoints return correct responses"
-
-  - id: "tests"
-    title: "Unit tests"
-    steps:
-      - "URL parsing tests"
-      - "Normalization tests"
-      - "Vault writer tests"
-    acceptance:
-      - "All tests pass"
-
-  - id: "docs"
-    title: "Documentation"
-    steps:
-      - "README with setup and usage"
-      - ".env.example"
-      - "Verification log"
-    acceptance:
-      - "README covers CLI, API, setup"
+    - id: task-1
+      title: Initial task
+      status: completed
+    - id: task-2
+      title: Remove personal paths and fix config defaults
+      status: completed
+    - id: task-3
+      title: Reframe note export as generic markdown with conditional behavior
+      status: completed
+    - id: task-4
+      title: Remove unfinished embedding surface from public interface
+      status: completed
+    - id: task-5
+      title: Replace decorative health check with live and ready endpoints
+      status: completed
+    - id: task-6
+      title: Fix VTT parser global dedupe to adjacent-only
+      status: completed
+    - id: task-7
+      title: Add per-sink persistence status to ingest result
+      status: completed
+    - id: task-8
+      title: Remove JCN branding from user-facing surfaces
+      status: completed
+    - id: task-9
+      title: Add code quality gates and test coverage
+      status: completed
+    - id: task-10
+      title: Rewrite docs for public release readiness
+      status: completed

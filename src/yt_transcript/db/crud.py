@@ -13,10 +13,14 @@ from .tables import MediaItem, TranscriptSegment
 
 async def find_by_source(session: AsyncSession, source_type: str, source_id: str) -> MediaItem | None:
     """Find an existing media item by source type and ID."""
-    stmt = select(MediaItem).where(
-        MediaItem.source_type == source_type,
-        MediaItem.source_id == source_id,
-    ).options(selectinload(MediaItem.segments))
+    stmt = (
+        select(MediaItem)
+        .where(
+            MediaItem.source_type == source_type,
+            MediaItem.source_id == source_id,
+        )
+        .options(selectinload(MediaItem.segments))
+    )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -50,9 +54,7 @@ async def upsert_transcript(session: AsyncSession, tr: TranscriptResult) -> Medi
             existing.published_at = tr.published_at
 
         # Delete old segments and re-insert
-        await session.execute(
-            delete(TranscriptSegment).where(TranscriptSegment.media_item_id == existing.id)
-        )
+        await session.execute(delete(TranscriptSegment).where(TranscriptSegment.media_item_id == existing.id))
         await session.flush()
         existing.segments.clear()
 
@@ -116,10 +118,10 @@ async def set_status(session: AsyncSession, item_id: uuid.UUID, status: str) -> 
         await session.commit()
 
 
-async def set_vault_path(session: AsyncSession, item_id: uuid.UUID, vault_path: str) -> None:
-    """Record the vault note path."""
+async def set_notes_path(session: AsyncSession, item_id: uuid.UUID, notes_path: str) -> None:
+    """Record the markdown note path."""
     item = await find_by_id(session, item_id)
     if item:
-        item.transcript_markdown_path = vault_path
+        item.transcript_markdown_path = notes_path
         item.updated_at = datetime.now(timezone.utc)
         await session.commit()

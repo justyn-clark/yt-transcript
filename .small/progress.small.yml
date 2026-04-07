@@ -7,57 +7,165 @@ entries:
       status: completed
       task_id: meta/init
       timestamp: "2026-04-06T22:31:42.091083000Z"
-
-    - task_id: scaffold
+    - evidence: pip install -e . succeeded, jcn-transcript CLI registered
+      notes: Python 3.13 venv, FastAPI + SQLAlchemy + youtube-transcript-api + yt-dlp + click installed
       status: completed
-      timestamp: "2026-04-06T22:43:00Z"
-      evidence: "pip install -e . succeeded, jcn-transcript CLI registered"
-      notes: "Python 3.13 venv, FastAPI + SQLAlchemy + youtube-transcript-api + yt-dlp + click installed"
-
-    - task_id: database
+      task_id: scaffold
+      timestamp: "2026-04-06T22:43:00.000000000Z"
+    - evidence: psql \dt shows media_items, transcript_segments, transcript_embeddings tables
+      notes: PostgreSQL 18, Alembic migration 52425d76c6b2 applied
       status: completed
-      timestamp: "2026-04-06T22:44:00Z"
-      evidence: "psql \\dt shows media_items, transcript_segments, transcript_embeddings tables"
-      notes: "PostgreSQL 18, Alembic migration 52425d76c6b2 applied"
-
-    - task_id: extraction
+      task_id: database
+      timestamp: "2026-04-06T22:44:00.000000000Z"
+    - evidence: youtube-transcript-api v1.2.4 API confirmed working (new instance-based API), yt-dlp subtitle fallback tested
+      notes: Fixed captions.py for youtube-transcript-api v1.2.4 API changes (instance-based, .list()/.fetch())
       status: completed
-      timestamp: "2026-04-06T22:44:30Z"
-      evidence: "youtube-transcript-api v1.2.4 API confirmed working (new instance-based API), yt-dlp subtitle fallback tested"
-      notes: "Fixed captions.py for youtube-transcript-api v1.2.4 API changes (instance-based, .list()/.fetch())"
-
-    - task_id: pipeline
+      task_id: extraction
+      timestamp: "2026-04-06T22:44:30.000000000Z"
+    - evidence: 'dQw4w9WgXcQ ingested: 61 segments, captions method, vault note written, DB record created'
+      notes: Duplicate ingestion returns same DB ID 2689b054, upsert works correctly
       status: completed
-      timestamp: "2026-04-06T22:46:00Z"
-      evidence: "dQw4w9WgXcQ ingested: 61 segments, captions method, vault note written, DB record created"
-      notes: "Duplicate ingestion returns same DB ID 2689b054, upsert works correctly"
-
-    - task_id: vault
+      task_id: pipeline
+      timestamp: "2026-04-06T22:46:00.000000000Z"
+    - evidence: Vault note at Inbox/Transcripts/YouTube/2026/2026-04-06 - Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster).md
+      notes: Frontmatter with video_id, channel, published date. Timestamped transcript body.
       status: completed
-      timestamp: "2026-04-06T22:46:00Z"
-      evidence: "Vault note at Inbox/Transcripts/YouTube/2026/2026-04-06 - Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster).md"
-      notes: "Frontmatter with video_id, channel, published date. Timestamped transcript body."
-
-    - task_id: cli
+      task_id: vault
+      timestamp: "2026-04-06T22:46:00.000000001Z"
+    - evidence: jcn-transcript youtube URL --json returns structured JSON, error cases return typed errors
+      notes: 'Flags: --force-asr, --no-embed, --no-vault, --no-db, --open-note, --json'
       status: completed
-      timestamp: "2026-04-06T22:46:00Z"
-      evidence: "jcn-transcript youtube URL --json returns structured JSON, error cases return typed errors"
-      notes: "Flags: --force-asr, --no-embed, --no-vault, --no-db, --open-note, --json"
-
-    - task_id: api
+      task_id: cli
+      timestamp: "2026-04-06T22:46:00.000000002Z"
+    - evidence: GET /health returns ok, GET /v1/transcripts/by-source/dQw4w9WgXcQ returns full record with 61 segments
+      notes: FastAPI on 127.0.0.1:8420
       status: completed
-      timestamp: "2026-04-06T22:47:00Z"
-      evidence: "GET /health returns ok, GET /v1/transcripts/by-source/dQw4w9WgXcQ returns full record with 61 segments"
-      notes: "FastAPI on 127.0.0.1:8420"
-
-    - task_id: tests
+      task_id: api
+      timestamp: "2026-04-06T22:47:00.000000000Z"
+    - evidence: 20 tests passed (test_url, test_normalize, test_vault)
+      notes: URL parsing, timestamp formatting, title sanitization, vault note creation
       status: completed
-      timestamp: "2026-04-06T22:47:00Z"
-      evidence: "20 tests passed (test_url, test_normalize, test_vault)"
-      notes: "URL parsing, timestamp formatting, title sanitization, vault note creation"
-
-    - task_id: docs
+      task_id: tests
+      timestamp: "2026-04-06T22:47:00.000000001Z"
+    - evidence: README.md, .env.example, verification log in progress.small.yml
+      notes: Setup instructions, CLI usage, API endpoints, architecture overview
       status: completed
-      timestamp: "2026-04-06T22:48:00Z"
-      evidence: "README.md, .env.example, verification log in progress.small.yml"
-      notes: "Setup instructions, CLI usage, API endpoints, architecture overview"
+      task_id: docs
+      timestamp: "2026-04-06T22:48:00.000000000Z"
+    - evidence: Reset plan and handoff (intent preserved)
+      notes: small reset --keep-intent
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: meta/reset
+      timestamp: "2026-04-07T17:52:16.975154000Z"
+    - evidence: Recorded completion via small plan --done task-1
+      notes: completed via CLI
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-1
+      timestamp: "2026-04-07T17:52:30.281266000Z"
+    - evidence: Added task task-2 via small plan --add
+      notes: Remove personal paths and fix config defaults
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-2
+      timestamp: "2026-04-07T17:52:38.970139000Z"
+    - evidence: Added task task-3 via small plan --add
+      notes: Reframe note export as generic markdown with conditional behavior
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-3
+      timestamp: "2026-04-07T17:52:39.004146000Z"
+    - evidence: Added task task-4 via small plan --add
+      notes: Remove unfinished embedding surface from public interface
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-4
+      timestamp: "2026-04-07T17:52:39.038538000Z"
+    - evidence: Added task task-5 via small plan --add
+      notes: Replace decorative health check with live and ready endpoints
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-5
+      timestamp: "2026-04-07T17:52:39.072852000Z"
+    - evidence: Added task task-6 via small plan --add
+      notes: Fix VTT parser global dedupe to adjacent-only
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-6
+      timestamp: "2026-04-07T17:52:39.106979000Z"
+    - evidence: Added task task-7 via small plan --add
+      notes: Add per-sink persistence status to ingest result
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-7
+      timestamp: "2026-04-07T17:52:39.144389000Z"
+    - evidence: Added task task-8 via small plan --add
+      notes: Remove JCN branding from user-facing surfaces
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-8
+      timestamp: "2026-04-07T17:52:39.178920000Z"
+    - evidence: Added task task-9 via small plan --add
+      notes: Add code quality gates and test coverage
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-9
+      timestamp: "2026-04-07T17:52:39.213388000Z"
+    - evidence: Added task task-10 via small plan --add
+      notes: Rewrite docs for public release readiness
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-10
+      timestamp: "2026-04-07T17:52:39.249386000Z"
+    - evidence: config.py defaults no longer contain personal paths; .env.example uses neutral placeholders; alembic.ini uses localhost without username
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-2
+      timestamp: "2026-04-07T17:52:52.440909000Z"
+    - evidence: 'vault.py renamed to notes.py; notes_dir defaults to None; Model B conditional: on when configured, off when not; 5 note export tests passing'
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-3
+      timestamp: "2026-04-07T17:52:56.760481000Z"
+    - evidence: Removed --embed/--no-embed CLI flags, embed API field, embedding config vars; internal DB table kept as reserved
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-4
+      timestamp: "2026-04-07T17:53:00.785688000Z"
+    - evidence: /health/live returns liveness; /health/ready checks DB connectivity and notes_dir writability; returns 503 when deps down; 5 health tests passing
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-5
+      timestamp: "2026-04-07T17:53:13.750378000Z"
+    - evidence: Replaced global seen_texts set with adjacent prev_text comparison; 5 VTT parse tests prove repeated text preserved at non-adjacent positions
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-6
+      timestamp: "2026-04-07T17:53:13.809646000Z"
+    - evidence: IngestResult now includes db_status, notes_status, notes_path; CLI and API both surface per-sink status; 4 CLI smoke tests verify output
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-7
+      timestamp: "2026-04-07T17:53:13.849973000Z"
+    - evidence: API title changed to Transcript Service; module docstrings neutralized; no JCN in user-facing text except internal package identifiers
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-8
+      timestamp: "2026-04-07T17:53:13.892810000Z"
+    - evidence: ruff lint+format configured; 49 tests passing; test coverage includes config, health, CLI, pipeline, VTT parse, notes export
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-9
+      timestamp: "2026-04-07T17:53:13.936064000Z"
+    - evidence: README rewritten for public use; RENAME_MAP.md and RELEASE_CHECKLIST.md created; CLAUDE.md updated
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-10
+      timestamp: "2026-04-07T17:53:13.979235000Z"
+    - evidence: Rewrote orphan progress task_ids for replayId scope bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac (operational=1 historical=0 unknown=0)
+      notes: 'original hashes: reset:e8628bad8c3d95b4e17bdfb6ee4f3c807b9e7ebabbe6bebfde37854f033da135'
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: meta/reconcile-plan
+      timestamp: "2026-04-07T17:53:22.880097000Z"
