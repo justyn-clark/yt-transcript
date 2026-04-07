@@ -1,0 +1,63 @@
+small_version: "1.0.0"
+owner: agent
+entries:
+    - command: small init
+      evidence: Initialized .small workspace and seeded canonical artifacts
+      notes: small init in /Users/justin/Documents/Justyn Clark Network/REPOS/jcn-transcript
+      status: completed
+      task_id: meta/init
+      timestamp: "2026-04-06T22:31:42.091083000Z"
+
+    - task_id: scaffold
+      status: completed
+      timestamp: "2026-04-06T22:43:00Z"
+      evidence: "pip install -e . succeeded, jcn-transcript CLI registered"
+      notes: "Python 3.13 venv, FastAPI + SQLAlchemy + youtube-transcript-api + yt-dlp + click installed"
+
+    - task_id: database
+      status: completed
+      timestamp: "2026-04-06T22:44:00Z"
+      evidence: "psql \\dt shows media_items, transcript_segments, transcript_embeddings tables"
+      notes: "PostgreSQL 18, Alembic migration 52425d76c6b2 applied"
+
+    - task_id: extraction
+      status: completed
+      timestamp: "2026-04-06T22:44:30Z"
+      evidence: "youtube-transcript-api v1.2.4 API confirmed working (new instance-based API), yt-dlp subtitle fallback tested"
+      notes: "Fixed captions.py for youtube-transcript-api v1.2.4 API changes (instance-based, .list()/.fetch())"
+
+    - task_id: pipeline
+      status: completed
+      timestamp: "2026-04-06T22:46:00Z"
+      evidence: "dQw4w9WgXcQ ingested: 61 segments, captions method, vault note written, DB record created"
+      notes: "Duplicate ingestion returns same DB ID 2689b054, upsert works correctly"
+
+    - task_id: vault
+      status: completed
+      timestamp: "2026-04-06T22:46:00Z"
+      evidence: "Vault note at Inbox/Transcripts/YouTube/2026/2026-04-06 - Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster).md"
+      notes: "Frontmatter with video_id, channel, published date. Timestamped transcript body."
+
+    - task_id: cli
+      status: completed
+      timestamp: "2026-04-06T22:46:00Z"
+      evidence: "jcn-transcript youtube URL --json returns structured JSON, error cases return typed errors"
+      notes: "Flags: --force-asr, --no-embed, --no-vault, --no-db, --open-note, --json"
+
+    - task_id: api
+      status: completed
+      timestamp: "2026-04-06T22:47:00Z"
+      evidence: "GET /health returns ok, GET /v1/transcripts/by-source/dQw4w9WgXcQ returns full record with 61 segments"
+      notes: "FastAPI on 127.0.0.1:8420"
+
+    - task_id: tests
+      status: completed
+      timestamp: "2026-04-06T22:47:00Z"
+      evidence: "20 tests passed (test_url, test_normalize, test_vault)"
+      notes: "URL parsing, timestamp formatting, title sanitization, vault note creation"
+
+    - task_id: docs
+      status: completed
+      timestamp: "2026-04-06T22:48:00Z"
+      evidence: "README.md, .env.example, verification log in progress.small.yml"
+      notes: "Setup instructions, CLI usage, API endpoints, architecture overview"

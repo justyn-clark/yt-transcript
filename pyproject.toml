@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jcn-transcript"
+version = "0.1.0"
+description = "Local-first YouTube transcript ingestion service for JCN"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "youtube-transcript-api>=1.0",
+    "yt-dlp>=2024.0",
+    "click>=8.1",
+    "pydantic-settings>=2.1",
+    "httpx>=0.27",
+    "python-multipart>=0.0.6",
+]
+
+[project.scripts]
+jcn-transcript = "jcn_transcript.cli.main:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,22 @@
+small_version: "1.0.0"
+owner: agent
+summary: >
+  jcn-transcript v0.1.0 is operational. CLI and HTTP API ingest YouTube transcripts
+  using subtitle-first retrieval (youtube-transcript-api -> yt-dlp -> ASR fallback).
+  Persists to Postgres (media_items + transcript_segments) and writes Obsidian vault notes.
+  Verified with live ingestion of dQw4w9WgXcQ (61 segments, captions method).
+  20 unit tests passing.
+resume:
+    next_steps:
+        - Add pgvector extension and embedding generation when JCN embedding model is confirmed
+        - Deploy Mac Studio ASR worker (faster-whisper HTTP endpoint)
+        - Test with videos that have no captions to verify ASR fallback end-to-end
+        - Add PaiBot front-end form for URL submission
+        - Consider adding retry-asr and reembed API endpoints
+        - Register as jcn-cli plugin if desired
+    current_task_id: docs
+links:
+    - "http://127.0.0.1:8420/health"
+replayId:
+    value: 840085fc39934e12924d1cfa912a7b1dd3fcd255658447526d651d06347146db
+    source: auto
