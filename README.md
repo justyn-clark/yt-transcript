@@ -1,5 +1,14 @@
 # yt-transcript
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue?logo=python&logoColor=white)](https://www.python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-red)](https://www.sqlalchemy.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-asyncpg-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Pydantic](https://img.shields.io/badge/pydantic--settings-2.1%2B-e92063?logo=pydantic&logoColor=white)](https://docs.pydantic.dev)
+[![yt-dlp](https://img.shields.io/badge/yt--dlp-2024%2B-FF0000?logo=youtube&logoColor=white)](https://github.com/yt-dlp/yt-dlp)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 Local-first YouTube transcript ingestion service.
 
 Accepts a YouTube URL, retrieves the transcript through a multi-tier fallback strategy, optionally persists to Postgres, and optionally exports a markdown note.
