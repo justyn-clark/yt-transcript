@@ -21,7 +21,7 @@ source .venv/bin/activate
 pip install -e .
 
 cp .env.example .env
-# Edit .env — see Configuration below
+# Edit .env - see Configuration below
 ```
 
 ### Database (optional)
@@ -38,7 +38,7 @@ To skip database persistence entirely, use `--no-db` on the CLI or `"persist_to_
 ### Markdown note export (optional)
 
 Set `YT_TRANSCRIPT_NOTES_DIR` to a directory path to enable markdown note export.
-Any directory works. If you use [Obsidian](https://obsidian.md/), point this at your vault root for the best experience — the notes include YAML frontmatter and tags that Obsidian indexes automatically.
+Any directory works. If you use [Obsidian](https://obsidian.md/), point this at your vault root for the best experience - the notes include YAML frontmatter and tags that Obsidian indexes automatically.
 
 When `NOTES_DIR` is not set, note export is disabled by default. You can also pass `--no-notes` on the CLI to skip it per-invocation.
 
@@ -153,9 +153,9 @@ Note export defaults to on when `NOTES_DIR` is configured, off when it is not.
 
 Transcripts are retrieved through a three-tier fallback:
 
-1. **youtube-transcript-api** — manual captions first, then auto-generated
-2. **yt-dlp** — subtitle download and VTT parse
-3. **ASR** — audio download + remote faster-whisper worker
+1. **youtube-transcript-api** - manual captions first, then auto-generated
+2. **yt-dlp** - subtitle download and VTT parse
+3. **ASR** - audio download + remote faster-whisper worker
 
 Each transcript records its `retrieval_method` (`captions`, `auto_captions`, or `asr`) and `quality_flags` for operator review.
 
@@ -210,6 +210,6 @@ ruff check src/ tests/ && pytest tests/ -v
 
 ## Release status
 
-**v0.1.0 release candidate** — local-first transcript ingestion with Postgres and markdown note export. Suitable for personal and small-team use.
+**v0.1.0 release candidate** - local-first transcript ingestion with Postgres and markdown note export. Suitable for personal and small-team use.
 
 Not included in v0.1.0: embeddings, remote ASR file upload, queue-based job orchestration, frontend UI.

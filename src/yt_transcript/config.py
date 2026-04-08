@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://localhost:5432/yt_transcript"
     database_url_sync: str = "postgresql://localhost:5432/yt_transcript"
 
-    # Markdown note export (optional — disabled when not set)
+    # Markdown note export (optional - disabled when not set)
     notes_dir: Path | None = None
     notes_subdir: str = "Transcripts/YouTube"
 

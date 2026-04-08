@@ -1,4 +1,4 @@
-"""Tests for VTT parser — verifies dedupe only removes adjacent duplicates."""
+"""Tests for VTT parser - verifies dedupe only removes adjacent duplicates."""
 
 import tempfile
 from pathlib import Path

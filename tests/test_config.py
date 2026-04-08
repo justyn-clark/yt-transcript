@@ -1,4 +1,4 @@
-"""Tests for configuration — verify no personal paths in defaults."""
+"""Tests for configuration - verify no personal paths in defaults."""
 
 from yt_transcript.config import Settings
 

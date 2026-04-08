@@ -163,13 +163,13 @@ async def get_transcript_by_source(video_id: str):
 
 @app.get("/health/live")
 async def health_live():
-    """Liveness check — confirms the process is running."""
+    """Liveness check - confirms the process is running."""
     return {"status": "alive"}
 
 
 @app.get("/health/ready")
 async def health_ready():
-    """Readiness check — verifies dependency connectivity."""
+    """Readiness check - verifies dependency connectivity."""
     checks: dict = {}
     ready = True
 
