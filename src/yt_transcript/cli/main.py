@@ -3,11 +3,14 @@
 import asyncio
 import json
 import logging
+import re
 import sys
+from pathlib import Path
 
 import click
 
 from ..lib.errors import TranscriptError
+from ..lib.normalize import reflow_transcript_lines
 from ..lib.pipeline import PipelineOptions, ingest_youtube_url
 
 
@@ -89,6 +92,53 @@ def youtube(url: str, force_asr: bool, no_notes: bool, no_db: bool, open_note: b
             click.echo(f"  Note path:  {result.notes_path}")
         if result.id:
             click.echo(f"  DB ID:      {result.id}")
+
+
+@cli.command("format-note")
+@click.argument("note_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--gap", default=5, show_default=True, help="Timestamp gap (seconds) that triggers a paragraph break.")
+@click.option("--max-words", default=75, show_default=True, help="Word count ceiling per paragraph.")
+def format_note(note_path: Path, gap: int, max_words: int):
+    """Reflow a transcript note into readable paragraphs.
+
+    Writes a normalized copy alongside the original as <name>-normalized.md.
+    The original file is never modified.
+    """
+    _TS_LINE = re.compile(r"^\[(\d+:\d{2}(?::\d{2})?)\] (.+)$")
+
+    source = note_path.read_text(encoding="utf-8")
+
+    # Split into sections: everything before "## Transcript", the heading, and the body
+    transcript_marker = "\n## Transcript\n"
+    marker_idx = source.find(transcript_marker)
+    if marker_idx == -1:
+        raise click.ClickException("No '## Transcript' section found in the file.")
+
+    preamble = source[: marker_idx + len(transcript_marker)]
+    body = source[marker_idx + len(transcript_marker):]
+
+    # Parse timestamped lines from the transcript body
+    raw_lines: list[tuple[str, str]] = []
+    other_lines: list[str] = []
+    for line in body.splitlines():
+        m = _TS_LINE.match(line.strip())
+        if m:
+            raw_lines.append((m.group(1), m.group(2)))
+        elif line.strip():
+            other_lines.append(line)
+
+    if not raw_lines:
+        raise click.ClickException("No timestamped lines ([MM:SS] text) found in the transcript section.")
+
+    paragraphs = reflow_transcript_lines(raw_lines, gap_threshold_s=gap, max_words=max_words)
+
+    transcript_body = "\n\n".join(f"[{ts}] {text}" for ts, text in paragraphs)
+    normalized = preamble + transcript_body + "\n"
+
+    out_path = note_path.with_name(note_path.stem + "-normalized" + note_path.suffix)
+    out_path.write_text(normalized, encoding="utf-8")
+    click.echo(f"Normalized note written: {out_path}")
+    click.echo(f"  {len(raw_lines)} caption lines → {len(paragraphs)} paragraphs")
 
 
 def main():

@@ -70,6 +70,24 @@ yt-transcript youtube "https://youtu.be/VIDEO_ID" --open-note
 yt-transcript -v youtube "https://youtu.be/VIDEO_ID"
 ```
 
+### Normalizing transcript notes
+
+Auto-captions are split into short 2–3 second lines that break mid-sentence. `format-note` reflowing them into readable paragraphs without modifying the original:
+
+```bash
+yt-transcript format-note "path/to/note.md"
+# → writes path/to/note-normalized.md
+```
+
+Options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--gap N` | `5` | Timestamp gap (seconds) that starts a new paragraph |
+| `--max-words N` | `75` | Word count ceiling per paragraph |
+
+Paragraph breaks are triggered by whichever condition fires first: a pause longer than `--gap` seconds in the video, or accumulating `--max-words` words. The first word of each paragraph is capitalized. The original `.md` file is never touched.
+
 ## HTTP API
 
 ```bash
@@ -148,7 +166,7 @@ All settings are environment variables with prefix `YT_TRANSCRIPT_`. See `.env.e
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
 | `DATABASE_URL` | `postgresql+asyncpg://localhost:5432/yt_transcript` | When using DB | Async Postgres URL |
-| `DATABASE_URL_SYNC` | `postgresql://localhost:5432/yt_transcript` | When using DB | Sync Postgres URL (Alembic) |
+| `DATABASE_URL_SYNC` | `postgresql+psycopg2://localhost:5432/yt_transcript` | When using DB | Sync Postgres URL (Alembic) |
 | `NOTES_DIR` | *(unset)* | When using notes | Directory for markdown note export |
 | `NOTES_SUBDIR` | `Transcripts/YouTube` | No | Subdirectory within notes dir |
 | `ASR_WORKER_URL` | `http://localhost:8787` | When using ASR | ASR worker endpoint |
@@ -171,6 +189,7 @@ All settings are environment variables with prefix `YT_TRANSCRIPT_`. See `.env.e
 ## Development
 
 ```bash
+# Install with dev dependencies (includes psycopg2-binary for Alembic migrations)
 pip install -e ".[dev]"
 
 # Run all tests
