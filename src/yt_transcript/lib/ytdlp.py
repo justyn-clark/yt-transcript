@@ -4,7 +4,6 @@ import json
 import logging
 import re
 import subprocess
-import tempfile
 from pathlib import Path
 
 from ..config import settings
@@ -120,9 +119,12 @@ def download_audio(video_id: str) -> Path | None:
             [
                 "yt-dlp",
                 "-x",
-                "--audio-format", "wav",
-                "--audio-quality", "0",
-                "-o", str(out_path),
+                "--audio-format",
+                "wav",
+                "--audio-quality",
+                "0",
+                "-o",
+                str(out_path),
                 "--no-playlist",
                 url,
             ],
@@ -161,10 +163,14 @@ def _download_subs(url: str, tmp_dir: Path, auto: bool) -> Path | None:
         "yt-dlp",
         "--skip-download",
         "--no-playlist",
-        "--sub-lang", "en",
-        "--sub-format", "vtt",
-        "--convert-subs", "vtt",
-        "-o", str(tmp_dir / "subs"),
+        "--sub-lang",
+        "en",
+        "--sub-format",
+        "vtt",
+        "--convert-subs",
+        "vtt",
+        "-o",
+        str(tmp_dir / "subs"),
     ]
     if auto:
         args.append("--write-auto-sub")
@@ -193,15 +199,13 @@ def _parse_vtt(path: Path) -> list[Segment]:
     idx = 0
 
     # Match timestamp lines: 00:00:01.000 --> 00:00:04.000
-    timestamp_re = re.compile(
-        r"(\d{2}:\d{2}:\d{2}\.\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}\.\d{3})"
-    )
+    timestamp_re = re.compile(r"(\d{2}:\d{2}:\d{2}\.\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}\.\d{3})")
     # Strip VTT tags
     tag_re = re.compile(r"<[^>]+>")
 
     lines = text.split("\n")
     i = 0
-    seen_texts: set[str] = set()
+    prev_text: str | None = None
 
     while i < len(lines):
         m = timestamp_re.match(lines[i].strip())
@@ -216,10 +220,12 @@ def _parse_vtt(path: Path) -> list[Segment]:
                     text_lines.append(line)
                 i += 1
             segment_text = " ".join(text_lines).strip()
-            if segment_text and segment_text not in seen_texts:
-                seen_texts.add(segment_text)
-                segments.append(Segment(idx=idx, start_seconds=round(start, 2), end_seconds=round(end, 2), text=segment_text))
+            # Only skip immediately adjacent identical segments (VTT overlap artifact)
+            if segment_text and segment_text != prev_text:
+                seg = Segment(idx=idx, start_seconds=round(start, 2), end_seconds=round(end, 2), text=segment_text)
+                segments.append(seg)
                 idx += 1
+            prev_text = segment_text
         else:
             i += 1
 

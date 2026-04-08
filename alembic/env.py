@@ -4,7 +4,7 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
-from jcn_transcript.db.tables import Base
+from yt_transcript.db.tables import Base
 
 config = context.config
 

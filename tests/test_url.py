@@ -1,6 +1,6 @@
 """Tests for URL parsing."""
 
-from jcn_transcript.lib.url import canonical_url, extract_video_id
+from yt_transcript.lib.url import canonical_url, extract_video_id
 
 
 def test_standard_url():
@@ -20,7 +20,8 @@ def test_shorts_url():
 
 
 def test_url_with_extra_params():
-    assert extract_video_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s&list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf") == "dQw4w9WgXcQ"
+    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s&list=PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"
+    assert extract_video_id(url) == "dQw4w9WgXcQ"
 
 
 def test_bare_video_id():

@@ -1,6 +1,6 @@
 """Tests for text normalization."""
 
-from jcn_transcript.lib.normalize import clean_text, format_timestamp, sanitize_title
+from yt_transcript.lib.normalize import clean_text, format_timestamp, sanitize_title
 
 
 def test_format_timestamp_minutes():

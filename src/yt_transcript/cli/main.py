@@ -1,4 +1,4 @@
-"""CLI entrypoint for jcn-transcript."""
+"""CLI entrypoint for yt-transcript."""
 
 import asyncio
 import json
@@ -14,7 +14,7 @@ from ..lib.pipeline import PipelineOptions, ingest_youtube_url
 @click.group()
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
 def cli(verbose: bool):
-    """JCN Transcript - Local-first YouTube transcript ingestion."""
+    """Local-first YouTube transcript ingestion."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
@@ -26,20 +26,18 @@ def cli(verbose: bool):
 @cli.command()
 @click.argument("url")
 @click.option("--force-asr", is_flag=True, help="Skip subtitle retrieval and go straight to ASR")
-@click.option("--no-embed", is_flag=True, help="Skip embedding generation")
-@click.option("--no-vault", is_flag=True, help="Skip vault note creation")
+@click.option("--no-notes", is_flag=True, help="Skip markdown note export")
 @click.option("--no-db", is_flag=True, help="Skip database persistence")
-@click.option("--open-note", is_flag=True, help="Open the vault note after creation")
+@click.option("--open-note", is_flag=True, help="Open the note after creation")
 @click.option("--json-output", "--json", "json_out", is_flag=True, help="Output result as JSON")
-def youtube(url: str, force_asr: bool, no_embed: bool, no_vault: bool, no_db: bool, open_note: bool, json_out: bool):
+def youtube(url: str, force_asr: bool, no_notes: bool, no_db: bool, open_note: bool, json_out: bool):
     """Ingest a YouTube video transcript.
 
     Accepts a YouTube URL or video ID.
     """
     options = PipelineOptions(
-        persist_to_vault=not no_vault,
-        persist_to_pg=not no_db,
-        embed=not no_embed,
+        persist_notes=False if no_notes else None,
+        persist_to_db=not no_db,
         open_note=open_note,
         force_asr=force_asr,
     )
@@ -60,26 +58,35 @@ def youtube(url: str, force_asr: bool, no_embed: bool, no_vault: bool, no_db: bo
         sys.exit(1)
 
     if json_out:
-        click.echo(json.dumps({
-            "id": result.id,
-            "source_type": result.source_type,
-            "source_id": result.source_id,
-            "status": result.status,
-            "retrieval_method": result.retrieval_method,
-            "language": result.language,
-            "vault_path": result.vault_path,
-            "segment_count": result.segment_count,
-            "title": result.title,
-            "url": result.url,
-        }, indent=2))
+        click.echo(
+            json.dumps(
+                {
+                    "id": result.id,
+                    "source_type": result.source_type,
+                    "source_id": result.source_id,
+                    "status": result.status,
+                    "retrieval_method": result.retrieval_method,
+                    "language": result.language,
+                    "segment_count": result.segment_count,
+                    "title": result.title,
+                    "url": result.url,
+                    "db_status": result.db_status,
+                    "notes_status": result.notes_status,
+                    "notes_path": result.notes_path,
+                },
+                indent=2,
+            )
+        )
     else:
         click.echo(f"Done: {result.title}")
         click.echo(f"  Video ID:   {result.source_id}")
         click.echo(f"  Method:     {result.retrieval_method}")
         click.echo(f"  Language:   {result.language}")
         click.echo(f"  Segments:   {result.segment_count}")
-        if result.vault_path:
-            click.echo(f"  Vault note: {result.vault_path}")
+        click.echo(f"  DB:         {result.db_status}")
+        click.echo(f"  Notes:      {result.notes_status}")
+        if result.notes_path:
+            click.echo(f"  Note path:  {result.notes_path}")
         if result.id:
             click.echo(f"  DB ID:      {result.id}")
 

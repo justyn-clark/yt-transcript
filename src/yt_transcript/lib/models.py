@@ -46,7 +46,9 @@ class IngestResult:
     status: str
     retrieval_method: str
     language: str
-    vault_path: str | None
     segment_count: int
     title: str
     url: str
+    db_status: str = "skipped"  # skipped | ok | failed
+    notes_status: str = "skipped"  # skipped | ok | failed
+    notes_path: str | None = None

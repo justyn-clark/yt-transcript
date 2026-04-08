@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from sqlalchemy import (
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     Numeric,
     Text,
@@ -42,7 +41,9 @@ class MediaItem(Base):
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
@@ -53,9 +54,7 @@ class MediaItem(Base):
         back_populates="media_item", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        UniqueConstraint("source_type", "source_id", name="uq_media_items_source"),
-    )
+    __table_args__ = (UniqueConstraint("source_type", "source_id", name="uq_media_items_source"),)
 
 
 class TranscriptSegment(Base):
@@ -76,9 +75,7 @@ class TranscriptSegment(Base):
 
     media_item: Mapped["MediaItem"] = relationship(back_populates="segments")
 
-    __table_args__ = (
-        UniqueConstraint("media_item_id", "idx", name="uq_transcript_segments_media_idx"),
-    )
+    __table_args__ = (UniqueConstraint("media_item_id", "idx", name="uq_transcript_segments_media_idx"),)
 
 
 class TranscriptEmbedding(Base):

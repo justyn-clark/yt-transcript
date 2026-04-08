@@ -21,6 +21,10 @@ class TranscriptError(Exception):
         }
 
 
+def _video_details(video_id: str, reason: str = "") -> dict[str, Any]:
+    return {"video_id": video_id, "reason": reason}
+
+
 def invalid_url(url: str) -> TranscriptError:
     return TranscriptError("invalid_url", f"Could not parse YouTube video ID from: {url}", {"url": url})
 
@@ -30,15 +34,27 @@ def transcript_not_found(video_id: str) -> TranscriptError:
 
 
 def subtitles_unavailable(video_id: str, reason: str = "") -> TranscriptError:
-    return TranscriptError("subtitles_unavailable", f"Subtitles unavailable for {video_id}: {reason}", {"video_id": video_id, "reason": reason})
+    return TranscriptError(
+        "subtitles_unavailable",
+        f"Subtitles unavailable for {video_id}: {reason}",
+        _video_details(video_id, reason),
+    )
 
 
 def subtitle_parse_failed(video_id: str, reason: str = "") -> TranscriptError:
-    return TranscriptError("subtitle_parse_failed", f"Failed to parse subtitles for {video_id}: {reason}", {"video_id": video_id, "reason": reason})
+    return TranscriptError(
+        "subtitle_parse_failed",
+        f"Failed to parse subtitles for {video_id}: {reason}",
+        _video_details(video_id, reason),
+    )
 
 
 def audio_download_failed(video_id: str, reason: str = "") -> TranscriptError:
-    return TranscriptError("audio_download_failed", f"Failed to download audio for {video_id}: {reason}", {"video_id": video_id, "reason": reason})
+    return TranscriptError(
+        "audio_download_failed",
+        f"Failed to download audio for {video_id}: {reason}",
+        _video_details(video_id, reason),
+    )
 
 
 def asr_worker_unreachable(url: str) -> TranscriptError:
@@ -46,12 +62,20 @@ def asr_worker_unreachable(url: str) -> TranscriptError:
 
 
 def asr_failed(video_id: str, reason: str = "") -> TranscriptError:
-    return TranscriptError("asr_failed", f"ASR transcription failed for {video_id}: {reason}", {"video_id": video_id, "reason": reason})
+    return TranscriptError(
+        "asr_failed",
+        f"ASR transcription failed for {video_id}: {reason}",
+        _video_details(video_id, reason),
+    )
 
 
 def db_write_failed(reason: str) -> TranscriptError:
     return TranscriptError("db_write_failed", f"Database write failed: {reason}", {"reason": reason})
 
 
-def vault_write_failed(path: str, reason: str) -> TranscriptError:
-    return TranscriptError("vault_write_failed", f"Vault write failed at {path}: {reason}", {"path": path, "reason": reason})
+def notes_write_failed(path: str, reason: str) -> TranscriptError:
+    return TranscriptError(
+        "notes_write_failed",
+        f"Note export failed at {path}: {reason}",
+        {"path": path, "reason": reason},
+    )
