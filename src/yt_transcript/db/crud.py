@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,32 @@ async def find_by_id(session: AsyncSession, item_id: uuid.UUID) -> MediaItem | N
     return result.scalar_one_or_none()
 
 
-async def upsert_transcript(session: AsyncSession, tr: TranscriptResult) -> MediaItem:
+def _merge_payload(
+    existing: dict[str, Any] | None,
+    extra: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Merge structured payload data without losing previously stored context."""
+    if existing is None:
+        return None if extra is None else dict(extra)
+    if extra is None:
+        return dict(existing)
+
+    merged = dict(existing)
+    for key, value in extra.items():
+        current = merged.get(key)
+        if isinstance(current, dict) and isinstance(value, dict):
+            merged[key] = _merge_payload(current, value)
+        else:
+            merged[key] = value
+    return merged
+
+
+async def upsert_transcript(
+    session: AsyncSession,
+    tr: TranscriptResult,
+    *,
+    raw_payload: dict[str, Any] | None = None,
+) -> MediaItem:
     """Insert or update a transcript record and its segments."""
     existing = await find_by_source(session, "youtube", tr.video_id)
 
@@ -47,6 +73,8 @@ async def upsert_transcript(session: AsyncSession, tr: TranscriptResult) -> Medi
         existing.transcript_status = "done"
         existing.transcript_text = tr.full_text
         existing.quality_flags = tr.quality_flags
+        if raw_payload is not None:
+            existing.raw_payload = _merge_payload(existing.raw_payload, raw_payload)
         existing.updated_at = now
         if tr.duration_seconds:
             existing.duration_seconds = tr.duration_seconds
@@ -86,6 +114,7 @@ async def upsert_transcript(session: AsyncSession, tr: TranscriptResult) -> Medi
         retrieval_method=tr.retrieval_method,
         transcript_status="done",
         transcript_text=tr.full_text,
+        raw_payload=_merge_payload(None, raw_payload),
         quality_flags=tr.quality_flags,
         created_at=now,
         updated_at=now,
