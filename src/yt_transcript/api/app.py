@@ -1,10 +1,13 @@
 """FastAPI application for transcript ingestion."""
 
 import logging
+import os
 import uuid
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy import text
 
 from ..config import settings
 from ..db.crud import find_by_id, find_by_source
@@ -63,6 +66,60 @@ class MediaItemResponse(BaseModel):
     quality_flags: list | None
 
 
+class TranscriptSegmentResponse(BaseModel):
+    idx: int
+    start_seconds: float
+    end_seconds: float
+    text: str
+    tokens_estimate: int | None
+
+
+class TranscriptContentResponse(MediaItemResponse):
+    transcript_text: str | None
+    segments: list[TranscriptSegmentResponse]
+
+
+def _database_readiness_enabled() -> bool:
+    """Allow ingest-only deployments to skip DB readiness checks explicitly."""
+    value = os.getenv("YT_TRANSCRIPT_DATABASE_ENABLED", "true").strip().lower()
+    return value not in {"0", "false", "no", "off"}
+
+
+def _media_item_response(item) -> MediaItemResponse:
+    return MediaItemResponse(
+        id=str(item.id),
+        source_type=item.source_type,
+        source_id=item.source_id,
+        url=item.url,
+        title=item.title,
+        channel_name=item.channel_name,
+        language=item.language,
+        retrieval_method=item.retrieval_method,
+        transcript_status=item.transcript_status,
+        notes_path=item.transcript_markdown_path,
+        segment_count=len(item.segments),
+        quality_flags=item.quality_flags,
+    )
+
+
+def _transcript_content_response(item) -> TranscriptContentResponse:
+    segments = sorted(item.segments, key=lambda segment: segment.idx)
+    return TranscriptContentResponse(
+        **_media_item_response(item).model_dump(),
+        transcript_text=item.transcript_text,
+        segments=[
+            TranscriptSegmentResponse(
+                idx=segment.idx,
+                start_seconds=float(segment.start_seconds),
+                end_seconds=float(segment.end_seconds),
+                text=segment.text,
+                tokens_estimate=segment.tokens_estimate,
+            )
+            for segment in segments
+        ],
+    )
+
+
 # --- Ingest ---
 
 
@@ -115,21 +172,24 @@ async def get_transcript(item_id: str):
             raise HTTPException(status_code=404, detail="Not found")
 
         await session.refresh(item, ["segments"])
+        return _media_item_response(item)
 
-        return MediaItemResponse(
-            id=str(item.id),
-            source_type=item.source_type,
-            source_id=item.source_id,
-            url=item.url,
-            title=item.title,
-            channel_name=item.channel_name,
-            language=item.language,
-            retrieval_method=item.retrieval_method,
-            transcript_status=item.transcript_status,
-            notes_path=item.transcript_markdown_path,
-            segment_count=len(item.segments),
-            quality_flags=item.quality_flags,
-        )
+
+@app.get("/v1/transcripts/{item_id}/content", response_model=TranscriptContentResponse)
+async def get_transcript_content(item_id: str):
+    """Get a transcript record with persisted text and ordered segments."""
+    try:
+        uid = uuid.UUID(item_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID")
+
+    async with async_session() as session:
+        item = await find_by_id(session, uid)
+        if not item:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        await session.refresh(item, ["segments"])
+        return _transcript_content_response(item)
 
 
 @app.get("/v1/transcripts/by-source/{video_id}", response_model=MediaItemResponse)
@@ -141,21 +201,19 @@ async def get_transcript_by_source(video_id: str):
             raise HTTPException(status_code=404, detail="Not found")
 
         await session.refresh(item, ["segments"])
+        return _media_item_response(item)
 
-        return MediaItemResponse(
-            id=str(item.id),
-            source_type=item.source_type,
-            source_id=item.source_id,
-            url=item.url,
-            title=item.title,
-            channel_name=item.channel_name,
-            language=item.language,
-            retrieval_method=item.retrieval_method,
-            transcript_status=item.transcript_status,
-            notes_path=item.transcript_markdown_path,
-            segment_count=len(item.segments),
-            quality_flags=item.quality_flags,
-        )
+
+@app.get("/v1/transcripts/by-source/{video_id}/content", response_model=TranscriptContentResponse)
+async def get_transcript_content_by_source(video_id: str):
+    """Get a transcript record with persisted text and ordered segments."""
+    async with async_session() as session:
+        item = await find_by_source(session, "youtube", video_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        await session.refresh(item, ["segments"])
+        return _transcript_content_response(item)
 
 
 # --- Health checks ---
@@ -173,14 +231,17 @@ async def health_ready():
     checks: dict = {}
     ready = True
 
-    # Database check
-    try:
-        async with async_session() as session:
-            await session.execute(__import__("sqlalchemy").text("SELECT 1"))
-        checks["database"] = "ok"
-    except Exception as e:
-        checks["database"] = f"failed: {e}"
-        ready = False
+    # Database check is only required when the DB-backed capability is enabled.
+    if _database_readiness_enabled():
+        try:
+            async with async_session() as session:
+                await session.execute(text("SELECT 1"))
+            checks["database"] = "ok"
+        except Exception as e:
+            checks["database"] = f"failed: {e}"
+            ready = False
+    else:
+        checks["database"] = "not_required"
 
     # Notes directory check (only when configured)
     if settings.notes_enabled:
@@ -193,7 +254,6 @@ async def health_ready():
         checks["notes_dir"] = "not_configured"
 
     status_code = 200 if ready else 503
-    from fastapi.responses import JSONResponse
 
     return JSONResponse(
         status_code=status_code,

@@ -1,5 +1,6 @@
 """Tests for health check endpoints."""
 
+from contextlib import ExitStack
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -26,7 +27,9 @@ def test_health_ready_db_ok(client):
     mock_session.__aexit__ = AsyncMock(return_value=False)
     mock_session.execute = AsyncMock()
 
-    with patch("yt_transcript.api.app.async_session", return_value=mock_session):
+    with ExitStack() as stack:
+        stack.enter_context(patch.dict("os.environ", {"YT_TRANSCRIPT_DATABASE_ENABLED": "true"}))
+        stack.enter_context(patch("yt_transcript.api.app.async_session", return_value=mock_session))
         with patch("yt_transcript.api.app.settings") as mock_settings:
             mock_settings.notes_enabled = False
             response = client.get("/health/ready")
@@ -44,7 +47,9 @@ def test_health_ready_db_down(client):
     mock_session.__aexit__ = AsyncMock(return_value=False)
     mock_session.execute = AsyncMock(side_effect=ConnectionRefusedError("connection refused"))
 
-    with patch("yt_transcript.api.app.async_session", return_value=mock_session):
+    with ExitStack() as stack:
+        stack.enter_context(patch.dict("os.environ", {"YT_TRANSCRIPT_DATABASE_ENABLED": "true"}))
+        stack.enter_context(patch("yt_transcript.api.app.async_session", return_value=mock_session))
         with patch("yt_transcript.api.app.settings") as mock_settings:
             mock_settings.notes_enabled = False
             response = client.get("/health/ready")
@@ -62,7 +67,9 @@ def test_health_ready_notes_configured_writable(client):
     mock_session.__aexit__ = AsyncMock(return_value=False)
     mock_session.execute = AsyncMock()
 
-    with patch("yt_transcript.api.app.async_session", return_value=mock_session):
+    with ExitStack() as stack:
+        stack.enter_context(patch.dict("os.environ", {"YT_TRANSCRIPT_DATABASE_ENABLED": "true"}))
+        stack.enter_context(patch("yt_transcript.api.app.async_session", return_value=mock_session))
         with patch("yt_transcript.api.app.settings") as mock_settings:
             mock_settings.notes_enabled = True
             mock_settings.notes_dir = "/tmp/test-notes"
@@ -81,7 +88,9 @@ def test_health_ready_notes_not_configured(client):
     mock_session.__aexit__ = AsyncMock(return_value=False)
     mock_session.execute = AsyncMock()
 
-    with patch("yt_transcript.api.app.async_session", return_value=mock_session):
+    with ExitStack() as stack:
+        stack.enter_context(patch.dict("os.environ", {"YT_TRANSCRIPT_DATABASE_ENABLED": "true"}))
+        stack.enter_context(patch("yt_transcript.api.app.async_session", return_value=mock_session))
         with patch("yt_transcript.api.app.settings") as mock_settings:
             mock_settings.notes_enabled = False
             response = client.get("/health/ready")
@@ -89,3 +98,23 @@ def test_health_ready_notes_not_configured(client):
     assert response.status_code == 200
     data = response.json()
     assert data["checks"]["notes_dir"] == "not_configured"
+
+
+def test_health_ready_skips_db_when_capability_disabled(client):
+    """Readiness stays healthy for ingest-only deployments."""
+    mock_session = AsyncMock()
+    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_session.__aexit__ = AsyncMock(return_value=False)
+    mock_session.execute = AsyncMock(side_effect=ConnectionRefusedError("connection refused"))
+
+    with ExitStack() as stack:
+        stack.enter_context(patch.dict("os.environ", {"YT_TRANSCRIPT_DATABASE_ENABLED": "false"}))
+        stack.enter_context(patch("yt_transcript.api.app.async_session", return_value=mock_session))
+        with patch("yt_transcript.api.app.settings") as mock_settings:
+            mock_settings.notes_enabled = False
+            response = client.get("/health/ready")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ready"
+    assert data["checks"]["database"] == "not_required"
