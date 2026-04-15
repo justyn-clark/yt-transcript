@@ -43,7 +43,7 @@ class IngestResult:
     id: str
     source_type: str
     source_id: str
-    status: str
+    status: str  # done | partial
     retrieval_method: str
     language: str
     segment_count: int

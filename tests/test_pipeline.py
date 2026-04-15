@@ -1,6 +1,7 @@
 """Tests for the ingestion pipeline with mocked dependencies."""
 
 import tempfile
+from contextlib import asynccontextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -33,6 +34,11 @@ def _mock_metadata(video_id="dQw4w9WgXcQ"):
         channel_name="Test Channel",
         duration_seconds=120,
     )
+
+
+@asynccontextmanager
+async def _mock_session():
+    yield object()
 
 
 @pytest.mark.asyncio
@@ -82,6 +88,56 @@ async def test_ingest_with_notes():
         assert result.notes_status == "ok"
         assert result.notes_path is not None
         assert Path(result.notes_path).exists()
+
+
+@pytest.mark.asyncio
+async def test_ingest_returns_partial_when_db_persistence_fails():
+    """Transcript extraction stays successful even if DB persistence fails."""
+    opts = PipelineOptions(persist_notes=False)
+
+    with (
+        patch("yt_transcript.lib.pipeline.captions") as mock_captions,
+        patch("yt_transcript.lib.pipeline.ytdlp") as mock_ytdlp,
+        patch("yt_transcript.lib.pipeline.async_session", return_value=_mock_session()),
+        patch(
+            "yt_transcript.lib.pipeline.upsert_transcript",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("db unavailable"),
+        ),
+    ):
+        mock_captions.fetch_captions.return_value = _mock_transcript()
+        mock_ytdlp.fetch_metadata.return_value = _mock_metadata()
+
+        result = await ingest_youtube_url("https://youtu.be/dQw4w9WgXcQ", opts)
+
+    assert result.status == "partial"
+    assert result.db_status == "failed"
+    assert result.notes_status == "skipped"
+    assert result.id == ""
+
+
+@pytest.mark.asyncio
+async def test_ingest_returns_partial_when_note_write_fails():
+    """Transcript extraction stays successful even if note persistence fails."""
+    opts = PipelineOptions(persist_notes=True)
+
+    with (
+        patch("yt_transcript.lib.pipeline.captions") as mock_captions,
+        patch("yt_transcript.lib.pipeline.ytdlp") as mock_ytdlp,
+        patch("yt_transcript.lib.pipeline.async_session", return_value=_mock_session()),
+        patch("yt_transcript.lib.pipeline.upsert_transcript", new_callable=AsyncMock) as mock_upsert,
+        patch("yt_transcript.lib.pipeline.write_note", side_effect=RuntimeError("disk full")),
+    ):
+        mock_captions.fetch_captions.return_value = _mock_transcript()
+        mock_ytdlp.fetch_metadata.return_value = _mock_metadata()
+        mock_upsert.return_value = type("Item", (), {"id": "abc-123"})()
+        result = await ingest_youtube_url("https://youtu.be/dQw4w9WgXcQ", opts)
+
+    assert result.status == "partial"
+    assert result.db_status == "ok"
+    assert result.notes_status == "failed"
+    assert result.id == "abc-123"
+    assert result.notes_path is None
 
 
 @pytest.mark.asyncio

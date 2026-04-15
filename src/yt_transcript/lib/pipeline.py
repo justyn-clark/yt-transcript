@@ -132,6 +132,7 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
     # Step 5: Persist to Postgres
     db_id = ""
     db_status = "skipped"
+    sink_failed = False
     if opts.persist_to_db:
         t0 = time.monotonic()
         try:
@@ -143,8 +144,9 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
             log.stage("persist_db", time.monotonic() - t0)
         except Exception as e:
             db_status = "failed"
+            sink_failed = True
             log.stage("persist_db", time.monotonic() - t0, status="failed", detail=str(e))
-            raise errors.db_write_failed(str(e)) from e
+            logger.warning("Failed to persist transcript to DB: %s", e)
 
     # Step 6: Write markdown note
     notes_path = ""
@@ -161,16 +163,23 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
             if db_id:
                 try:
                     async with async_session() as session:
-                        await set_notes_path(session, item.id, notes_path)
+                        await set_notes_path(session, db_id, notes_path)
+                    log.stage("update_note_path", time.monotonic() - t0, detail="ok")
                 except Exception as e:
+                    db_status = "failed"
+                    sink_failed = True
+                    log.stage("update_note_path", time.monotonic() - t0, status="failed", detail=str(e))
                     logger.warning("Failed to update DB with note path: %s", e)
-        except errors.TranscriptError:
+        except errors.TranscriptError as e:
             notes_status = "failed"
-            raise
+            sink_failed = True
+            log.stage("write_notes", time.monotonic() - t0, status="failed", detail=str(e))
+            logger.warning("Failed to write notes: %s", e)
         except Exception as e:
             notes_status = "failed"
+            sink_failed = True
             log.stage("write_notes", time.monotonic() - t0, status="failed", detail=str(e))
-            raise errors.notes_write_failed(str(notes_path), str(e)) from e
+            logger.warning("Failed to write notes: %s", e)
 
     # Open note if requested
     if opts.open_note and notes_path:
@@ -181,7 +190,7 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
         except Exception:
             pass
 
-    log.status = "done"
+    log.status = "partial" if sink_failed else "done"
     log.total_seconds = round(time.monotonic() - pipeline_start, 2)
 
     logger.info(
@@ -197,7 +206,7 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
         id=db_id,
         source_type="youtube",
         source_id=video_id,
-        status="done",
+        status=log.status,
         retrieval_method=transcript.retrieval_method,
         language=transcript.language,
         segment_count=len(transcript.segments),

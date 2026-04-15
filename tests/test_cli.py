@@ -85,6 +85,20 @@ def test_cli_json_output():
     assert data["notes_path"] is None
 
 
+def test_cli_json_output_partial():
+    """CLI --json surfaces partial ingest status from the pipeline."""
+    result = _run_cli(
+        ["youtube", "dQw4w9WgXcQ", "--no-notes", "--json"],
+        _mock_result(status="partial", db_status="failed"),
+    )
+    assert result.exit_code == 0
+    import json
+
+    data = json.loads(result.output)
+    assert data["status"] == "partial"
+    assert data["db_status"] == "failed"
+
+
 def test_cli_error_handling():
     """CLI surfaces TranscriptError cleanly."""
     from yt_transcript.lib.errors import TranscriptError
