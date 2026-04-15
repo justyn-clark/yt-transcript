@@ -55,10 +55,15 @@ The central orchestrator. For a given YouTube URL it runs these stages in order:
 
 - **CLI** (`cli/main.py`) - Click CLI, registered as `yt-transcript` console script. Uses `asyncio.run()` to call the async pipeline.
 - **HTTP API** (`api/app.py`) - FastAPI app on port 8420. Endpoints under `/v1/transcripts/`.
+  - `POST /v1/transcripts/youtube` ingests
+  - `GET` metadata endpoints return persisted record metadata plus `segment_count`
+  - `GET .../content` endpoints return transcript text and ordered segments
 
 ### Persistence model
 
-Both sinks (DB and notes) are independently optional. The `IngestResult` reports per-sink status (`db_status`, `notes_status`) so partial success is explicit, not hidden.
+Both sinks (DB and notes) are independently optional. The `IngestResult` reports overall `status` plus per-sink status (`db_status`, `notes_status`).
+
+Important behavior detail: extraction failures still raise and abort the request. Sink failures after successful extraction now downgrade the result to `partial` instead of aborting the whole ingest.
 
 Note export is conditional: enabled by default when `NOTES_DIR` is configured, disabled when it is not. Can be overridden per-invocation.
 
@@ -77,11 +82,14 @@ Note export is conditional: enabled by default when `NOTES_DIR` is configured, d
 
 All settings via `YT_TRANSCRIPT_` env vars, managed by pydantic-settings in `config.py`. Copy `.env.example` to `.env`.
 
+`YT_TRANSCRIPT_DATABASE_ENABLED=false` can be used for ingest-only deployments that should skip DB readiness checks.
+
 ### Key constraints
 
 - The ASR worker (`workers/asr_client.py`) assumes a shared filesystem with the worker host - it sends a local file path, not audio bytes.
 - The `transcript_embeddings` table exists in the schema but embeddings are not implemented. The table is reserved for future use and not exposed in the public API.
 - The `raw_payload` column on `media_items` is reserved but not yet populated.
+- Language handling is English-first across captions, subtitle fallback, and ASR hints.
 
 ## SMALL Harness
 

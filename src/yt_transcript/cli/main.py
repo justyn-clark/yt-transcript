@@ -115,7 +115,7 @@ def format_note(note_path: Path, gap: int, max_words: int):
         raise click.ClickException("No '## Transcript' section found in the file.")
 
     preamble = source[: marker_idx + len(transcript_marker)]
-    body = source[marker_idx + len(transcript_marker):]
+    body = source[marker_idx + len(transcript_marker) :]
 
     # Parse timestamped lines from the transcript body
     raw_lines: list[tuple[str, str]] = []

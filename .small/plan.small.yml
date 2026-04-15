@@ -31,3 +31,21 @@ tasks:
     - id: task-10
       title: Rewrite docs for public release readiness
       status: completed
+    - id: task-11
+      title: Audit repository status and verify current behavior
+      status: completed
+    - id: task-12
+      title: Update README and add project status roadmap documentation
+      status: completed
+    - id: task-13
+      title: Capture summarize-inspired enhancement direction without broadening product scope
+      status: completed
+    - id: task-14
+      title: Add transcript content endpoints and capability-aware readiness checks
+      status: completed
+    - id: task-15
+      title: Persist raw metadata and pipeline diagnostics during transcript upsert
+      status: completed
+    - id: task-16
+      title: Return partial ingest results on sink failure and document the updated contract
+      status: completed

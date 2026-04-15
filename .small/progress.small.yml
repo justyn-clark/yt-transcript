@@ -169,3 +169,63 @@ entries:
       status: completed
       task_id: meta/reconcile-plan
       timestamp: "2026-04-07T17:53:22.880097000Z"
+    - evidence: Added task task-11 via small plan --add
+      notes: Audit repository status and verify current behavior
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-11
+      timestamp: "2026-04-15T21:51:13.221888000Z"
+    - evidence: Added task task-12 via small plan --add
+      notes: Update README and add project status roadmap documentation
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-12
+      timestamp: "2026-04-15T21:51:13.223193000Z"
+    - evidence: Added task task-13 via small plan --add
+      notes: Capture summarize-inspired enhancement direction without broadening product scope
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-13
+      timestamp: "2026-04-15T21:51:28.819079000Z"
+    - evidence: 'Verified project status in repo venv: .venv/bin/pytest -q => 49 passed; .venv/bin/ruff check src tests => all checks passed; small check --strict => verification passed'
+      notes: Bare-shell pytest fails without active project venv; documented as environment requirement
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-11
+      timestamp: "2026-04-15T21:51:39.465272000Z"
+    - evidence: Added task task-14 via small plan --add
+      notes: Add transcript content endpoints and capability-aware readiness checks
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-14
+      timestamp: "2026-04-15T22:05:26.714066000Z"
+    - evidence: Added task task-15 via small plan --add
+      notes: Persist raw metadata and pipeline diagnostics during transcript upsert
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-15
+      timestamp: "2026-04-15T22:05:29.177381000Z"
+    - evidence: Added task task-16 via small plan --add
+      notes: Return partial ingest results on sink failure and document the updated contract
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: pending
+      task_id: task-16
+      timestamp: "2026-04-15T22:05:31.678210000Z"
+    - evidence: Added transcript content endpoints plus DB-capability-aware readiness; tests cover content routes and readiness gating
+      notes: GET /v1/transcripts/{id}/content and /by-source/{video_id}/content now return transcript_text and ordered segments; readiness skips DB when YT_TRANSCRIPT_DATABASE_ENABLED=false
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-14
+      timestamp: "2026-04-15T22:05:39.488294000Z"
+    - evidence: Pipeline now passes JSON-safe raw metadata and stage diagnostics into media_items.raw_payload during transcript upsert
+      notes: Used existing raw_payload column; added CRUD tests and pipeline coverage for raw payload wiring
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-15
+      timestamp: "2026-04-15T22:05:39.492691000Z"
+    - evidence: Ingest returns status=partial when DB or note sinks fail after successful transcript extraction; docs updated to match
+      notes: Format, lint, tests, and small strict verification all passed; pytest suite at 60 passing
+      replayId: bcb92c49356851ec58b773dd9dd302d8adf942b54f5f7511ca34f35c64831eac
+      status: completed
+      task_id: task-16
+      timestamp: "2026-04-15T22:05:39.621787000Z"

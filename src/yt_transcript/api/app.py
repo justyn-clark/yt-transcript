@@ -1,7 +1,6 @@
 """FastAPI application for transcript ingestion."""
 
 import logging
-import os
 import uuid
 
 from fastapi import FastAPI, HTTPException
@@ -77,12 +76,6 @@ class TranscriptSegmentResponse(BaseModel):
 class TranscriptContentResponse(MediaItemResponse):
     transcript_text: str | None
     segments: list[TranscriptSegmentResponse]
-
-
-def _database_readiness_enabled() -> bool:
-    """Allow ingest-only deployments to skip DB readiness checks explicitly."""
-    value = os.getenv("YT_TRANSCRIPT_DATABASE_ENABLED", "true").strip().lower()
-    return value not in {"0", "false", "no", "off"}
 
 
 def _media_item_response(item) -> MediaItemResponse:
@@ -232,7 +225,7 @@ async def health_ready():
     ready = True
 
     # Database check is only required when the DB-backed capability is enabled.
-    if _database_readiness_enabled():
+    if settings.database_enabled:
         try:
             async with async_session() as session:
                 await session.execute(text("SELECT 1"))

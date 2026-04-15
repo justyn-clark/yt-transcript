@@ -15,6 +15,7 @@ def test_no_personal_paths_in_defaults():
     # Database URL should not contain a personal username
     assert "justin" not in s.database_url
     assert "justin" not in s.database_url_sync
+    assert s.database_enabled is True
 
     # ASR URL should not reference personal machines
     assert "studio.local" not in s.asr_worker_url
@@ -40,3 +41,11 @@ def test_notes_disabled_when_not_configured():
         _env_file=None,
     )
     assert s.notes_enabled is False
+
+
+def test_database_can_be_disabled_explicitly():
+    s = Settings(
+        _env_file=None,
+        database_enabled=False,
+    )
+    assert s.database_enabled is False

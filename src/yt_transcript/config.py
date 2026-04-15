@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "YT_TRANSCRIPT_", "env_file": ".env", "extra": "ignore"}
 
     # Postgres
+    database_enabled: bool = True
     database_url: str = "postgresql+asyncpg://localhost:5432/yt_transcript"
     database_url_sync: str = "postgresql://localhost:5432/yt_transcript"
 

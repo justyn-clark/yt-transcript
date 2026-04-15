@@ -117,6 +117,31 @@ async def test_ingest_returns_partial_when_db_persistence_fails():
 
 
 @pytest.mark.asyncio
+async def test_ingest_persists_raw_payload_with_metadata_and_stages():
+    """DB persistence includes raw metadata and pipeline stage diagnostics."""
+    opts = PipelineOptions(persist_to_db=True, persist_notes=False)
+
+    with (
+        patch("yt_transcript.lib.pipeline.captions") as mock_captions,
+        patch("yt_transcript.lib.pipeline.ytdlp") as mock_ytdlp,
+        patch("yt_transcript.lib.pipeline.async_session", return_value=_mock_session()),
+        patch("yt_transcript.lib.pipeline.upsert_transcript", new_callable=AsyncMock) as mock_upsert,
+    ):
+        mock_captions.fetch_captions.return_value = _mock_transcript()
+        mock_ytdlp.fetch_metadata.return_value = _mock_metadata()
+        mock_upsert.return_value = type("Item", (), {"id": "abc-123"})()
+
+        result = await ingest_youtube_url("https://youtu.be/dQw4w9WgXcQ", opts)
+
+    assert result.status == "done"
+    kwargs = mock_upsert.await_args.kwargs
+    assert "raw_payload" in kwargs
+    assert kwargs["raw_payload"]["metadata"]["title"] == "Test Title"
+    assert kwargs["raw_payload"]["pipeline"]["video_id"] == "dQw4w9WgXcQ"
+    assert kwargs["raw_payload"]["pipeline"]["stages"][0]["name"] == "resolve_url"
+
+
+@pytest.mark.asyncio
 async def test_ingest_returns_partial_when_note_write_fails():
     """Transcript extraction stays successful even if note persistence fails."""
     opts = PipelineOptions(persist_notes=True)

@@ -11,7 +11,37 @@
 
 Local-first YouTube transcript ingestion service.
 
-Accepts a YouTube URL, retrieves the transcript through a multi-tier fallback strategy, optionally persists to Postgres, and optionally exports a markdown note.
+Accepts a YouTube URL or video ID, retrieves the transcript through a three-tier fallback strategy, optionally persists to Postgres, and optionally exports a markdown note.
+
+## Current Status
+
+As of 2026-04-15, the repository is in a healthy local state:
+
+- `.venv/bin/pytest -q` -> `49 passed`
+- `.venv/bin/ruff check src tests` -> `All checks passed!`
+- `small check --strict` -> `Verification passed`
+
+Important environment note: running `pytest` from the bare shell can fail if the project virtualenv is not active. Use the repo venv or activate it before verification.
+
+## What This Is
+
+`yt-transcript` is an ingestion and persistence tool, not yet a summarization product.
+
+Its current responsibilities are:
+
+- Resolve a YouTube URL or ID into a canonical source record
+- Retrieve transcript text through caption-first fallbacks
+- Normalize transcript text into a stable artifact
+- Persist transcript data to Postgres when enabled
+- Export a readable markdown note when enabled
+
+Its current non-goals:
+
+- Rich summarization workflows
+- Background job orchestration
+- Browser integrations
+- Multi-provider AI orchestration
+- Full media-processing UX beyond transcript extraction
 
 ## Setup
 
@@ -34,6 +64,8 @@ alembic upgrade head
 ```
 
 To skip database persistence entirely, use `--no-db` on the CLI or `"persist_to_db": false` in API requests.
+
+The ingest pipeline can run without Postgres. The lookup API endpoints still depend on the database because they read persisted records.
 
 ### Markdown note export (optional)
 
@@ -72,7 +104,7 @@ yt-transcript -v youtube "https://youtu.be/VIDEO_ID"
 
 ### Normalizing transcript notes
 
-Auto-captions are split into short 2–3 second lines that break mid-sentence. `format-note` reflowing them into readable paragraphs without modifying the original:
+Auto-captions are split into short 2-3 second lines that break mid-sentence. `format-note` reflows them into readable paragraphs without modifying the original:
 
 ```bash
 yt-transcript format-note "path/to/note.md"
@@ -101,9 +133,13 @@ python -m yt_transcript.api.server
 |--------|------|-------------|
 | `POST` | `/v1/transcripts/youtube` | Ingest a YouTube video |
 | `GET` | `/v1/transcripts/{id}` | Get transcript by UUID |
+| `GET` | `/v1/transcripts/{id}/content` | Get transcript text and ordered segments by UUID |
 | `GET` | `/v1/transcripts/by-source/{video_id}` | Get transcript by YouTube video ID |
+| `GET` | `/v1/transcripts/by-source/{video_id}/content` | Get transcript text and ordered segments by video ID |
 | `GET` | `/health/live` | Process liveness check |
 | `GET` | `/health/ready` | Dependency readiness check |
+
+The metadata lookup endpoints return persisted record metadata plus `segment_count`. The `/content` endpoints return `transcript_text` and ordered `segments`.
 
 ### Ingest request
 
@@ -115,7 +151,7 @@ curl -X POST http://127.0.0.1:8420/v1/transcripts/youtube \
 
 ### Ingest response
 
-The response includes per-sink status for honest reporting of partial success:
+The response includes per-sink status fields:
 
 ```json
 {
@@ -134,7 +170,9 @@ The response includes per-sink status for honest reporting of partial success:
 }
 ```
 
-`db_status` and `notes_status` are each one of: `ok`, `skipped`, `failed`.
+`status` is currently one of `done` or `partial`. `db_status` and `notes_status` are each one of `ok`, `skipped`, `failed`.
+
+Current behavior detail: extraction failures still fail the request. When transcript extraction succeeds but DB or note persistence fails, the pipeline now returns `status: "partial"` with accurate sink-specific statuses.
 
 ## Persistence modes
 
@@ -167,6 +205,7 @@ All settings are environment variables with prefix `YT_TRANSCRIPT_`. See `.env.e
 |----------|---------|----------|-------------|
 | `DATABASE_URL` | `postgresql+asyncpg://localhost:5432/yt_transcript` | When using DB | Async Postgres URL |
 | `DATABASE_URL_SYNC` | `postgresql+psycopg2://localhost:5432/yt_transcript` | When using DB | Sync Postgres URL (Alembic) |
+| `DATABASE_ENABLED` | `true` | No | Controls whether DB-backed capabilities are considered required for readiness |
 | `NOTES_DIR` | *(unset)* | When using notes | Directory for markdown note export |
 | `NOTES_SUBDIR` | `Transcripts/YouTube` | No | Subdirectory within notes dir |
 | `ASR_WORKER_URL` | `http://localhost:8787` | When using ASR | ASR worker endpoint |
@@ -185,6 +224,10 @@ All settings are environment variables with prefix `YT_TRANSCRIPT_`. See `.env.e
 - **ASR fallback requires shared filesystem**: The ASR worker client sends a local file path to the worker, not the audio bytes. Both the service and the ASR worker must have access to the same filesystem path. This is the only supported ASR topology in v0.1.0.
 - **Embeddings are not implemented**: The database schema includes a `transcript_embeddings` table reserved for future use. No embedding generation, storage, or query is exposed in v0.1.0.
 - **`raw_payload` column is reserved**: The `media_items.raw_payload` JSONB column exists in the schema but is not populated. It is reserved for future use (e.g., storing raw yt-dlp metadata).
+- **Lookup API is metadata-first**: The GET endpoints expose record metadata and counts, not the full transcript body.
+- **Transcript-content API is separate**: full transcript text and ordered segments are available from the `/content` lookup endpoints rather than the metadata endpoints.
+- **Language handling is English-first**: caption and subtitle retrieval currently prefer English only; there is no translation workflow or configurable language policy.
+- **Summarization is intentionally absent**: if you want summaries, that should be added as a separate enrichment layer rather than folded into the ingestion hot path.
 
 ## Development
 
@@ -213,3 +256,7 @@ ruff check src/ tests/ && pytest tests/ -v
 **v0.1.0 release candidate** - local-first transcript ingestion with Postgres and markdown note export. Suitable for personal and small-team use.
 
 Not included in v0.1.0: embeddings, remote ASR file upload, queue-based job orchestration, frontend UI.
+
+## Further Reading
+
+- [Project Status and Roadmap](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/docs/project-status-and-roadmap.md)

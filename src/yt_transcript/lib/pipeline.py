@@ -1,5 +1,6 @@
 """Main ingestion pipeline orchestrator."""
 
+import dataclasses
 import logging
 import shutil
 import time
@@ -131,13 +132,16 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
 
     # Step 5: Persist to Postgres
     db_id = ""
+    db_item_id = None
     db_status = "skipped"
     sink_failed = False
     if opts.persist_to_db:
         t0 = time.monotonic()
         try:
+            raw_payload = _build_raw_payload(metadata, log)
             async with async_session() as session:
-                item = await upsert_transcript(session, transcript)
+                item = await upsert_transcript(session, transcript, raw_payload=raw_payload)
+                db_item_id = item.id
                 db_id = str(item.id)
                 log.db_id = db_id
             db_status = "ok"
@@ -160,10 +164,10 @@ async def ingest_youtube_url(url: str, options: PipelineOptions | None = None) -
             log.stage("write_notes", time.monotonic() - t0)
 
             # Update DB with note path
-            if db_id:
+            if db_item_id is not None:
                 try:
                     async with async_session() as session:
-                        await set_notes_path(session, db_id, notes_path)
+                        await set_notes_path(session, db_item_id, notes_path)
                     log.stage("update_note_path", time.monotonic() - t0, detail="ok")
                 except Exception as e:
                     db_status = "failed"
@@ -226,3 +230,30 @@ def _cleanup_tmp(video_id: str) -> None:
             shutil.rmtree(tmp_dir)
         except Exception:
             pass
+
+
+def _build_raw_payload(metadata: Any, log: PipelineLog) -> dict[str, Any]:
+    """Build a JSON-serializable payload for persistence and later audit."""
+    payload: dict[str, Any] = {
+        "pipeline": {
+            "job_id": log.job_id,
+            "source_url": log.source_url,
+            "video_id": log.video_id,
+            "retrieval_path": log.retrieval_path or None,
+            "stages": list(log.stages),
+        }
+    }
+    if metadata is not None:
+        payload["metadata"] = _jsonable(dataclasses.asdict(metadata))
+    return payload
+
+
+def _jsonable(value: Any) -> Any:
+    """Convert dataclass-derived values into JSON-safe primitives."""
+    if isinstance(value, dict):
+        return {key: _jsonable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    return value
