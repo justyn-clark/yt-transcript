@@ -31,15 +31,15 @@ That boundary matters. The current codebase stays coherent when it is treated as
 
 Areas where intent and code align well:
 
-- Single clear ingestion path in [`src/yt_transcript/lib/pipeline.py`](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/src/yt_transcript/lib/pipeline.py)
-- Thin surfaces in [`src/yt_transcript/cli/main.py`](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/src/yt_transcript/cli/main.py) and [`src/yt_transcript/api/app.py`](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/src/yt_transcript/api/app.py)
+- Single clear ingestion path in [`src/yt_transcript/lib/pipeline.py`](../src/yt_transcript/lib/pipeline.py)
+- Thin surfaces in [`src/yt_transcript/cli/main.py`](../src/yt_transcript/cli/main.py) and [`src/yt_transcript/api/app.py`](../src/yt_transcript/api/app.py)
 - Explicit optionality for DB persistence and note export
 - Honest treatment of ASR as a fallback, not the primary path
 - Good test coverage around parsing, CLI behavior, health checks, notes, and pipeline fallback behavior
 
 Areas where intent is underspecified:
 
-- Human-owned intent in [`.small/intent.small.yml`](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/.small/intent.small.yml) is effectively empty, so product intent is inferred from code and README rather than being formally declared in the harness.
+- Human-owned intent in [`.small/intent.small.yml`](../.small/intent.small.yml) is effectively empty, so product intent is inferred from code and README rather than being formally declared in the harness.
 - The API exposes transcript lookup endpoints, but those endpoints currently return metadata and counts, not transcript content. The product name can imply more than the API actually returns.
 
 ## Coherency Gaps

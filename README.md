@@ -43,13 +43,27 @@ Its current non-goals:
 - Multi-provider AI orchestration
 - Full media-processing UX beyond transcript extraction
 
-## Setup
+## Install
+
+For CLI use from a checkout:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
+```
 
+For user-level CLI use directly from GitHub:
+
+```bash
+pipx install git+https://github.com/justyn-clark/yt-transcript.git
+# or
+python3 -m pip install --user git+https://github.com/justyn-clark/yt-transcript.git
+```
+
+Then configure as needed:
+
+```bash
 cp .env.example .env
 # Edit .env - see Configuration below
 ```
@@ -259,26 +273,40 @@ Not included in v0.1.0: embeddings, remote ASR file upload, queue-based job orch
 
 ## Further Reading
 
-- [Project Status and Roadmap](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/docs/project-status-and-roadmap.md)
+- [Project Status and Roadmap](docs/project-status-and-roadmap.md)
 
 ## Local scheduled queue
 
-For JCN operator runs, queued ingestion is handled by `scripts/process_queue.sh`.
+Queued ingestion is handled by `scripts/process_queue.sh`. The script is intentionally machine-neutral: defaults stay under the current user's home directory and deployment-specific paths are supplied through environment variables.
 
 Default queue location:
 
 ```text
-/Users/jcnagent/Agent/Ops/youtube-transcribe/inbox.txt
+${XDG_STATE_HOME:-$HOME/.local/state}/yt-transcript/queue/inbox.txt
 ```
 
 Add one YouTube URL per line. Blank lines and `# comments` are ignored. The processor removes attempted URLs from `inbox.txt`, appends successful runs to `processed.tsv`, appends failed runs to `failed.tsv`, and stores raw receipts under `logs/`.
 
-By default the script runs in notes-only mode (`--no-db`) and writes transcript notes into the Vault under:
+By default the script runs in notes-only mode (`--no-db`) and writes transcript notes under:
 
 ```text
-/Users/jcnagent/Agent/Vault/50 - Content & Ideas/Transcripts/YouTube/<year>/
+$HOME/Documents/yt-transcript-notes/Transcripts/YouTube/<year>/
 ```
 
-The paths can be overridden with `YT_TRANSCRIPT_QUEUE_DIR`, `YT_TRANSCRIPT_NOTES_DIR`, and `YT_TRANSCRIPT_NOTES_SUBDIR`.
+Useful overrides:
 
-OpenClaw cron job `yt-transcript-queue-hourly` runs this processor once per hour on the Mac mini.
+| Variable | Purpose |
+|----------|---------|
+| `YT_TRANSCRIPT_QUEUE_DIR` | Directory containing `inbox.txt`, status TSVs, logs, and lock state |
+| `YT_TRANSCRIPT_NOTES_DIR` | Root directory for markdown note export |
+| `YT_TRANSCRIPT_NOTES_SUBDIR` | Subdirectory below `YT_TRANSCRIPT_NOTES_DIR` for transcript notes |
+| `YT_TRANSCRIPT_CLI` | Explicit path to the `yt-transcript` executable |
+| `YT_TRANSCRIPT_REPO_DIR` | Repository checkout path, used to discover `.venv/bin/yt-transcript` |
+
+Example:
+
+```bash
+YT_TRANSCRIPT_QUEUE_DIR="$HOME/.local/state/yt-transcript/queue" \
+YT_TRANSCRIPT_NOTES_DIR="$HOME/Documents/yt-transcript-notes" \
+./scripts/process_queue.sh
+```
