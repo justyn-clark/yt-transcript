@@ -260,3 +260,25 @@ Not included in v0.1.0: embeddings, remote ASR file upload, queue-based job orch
 ## Further Reading
 
 - [Project Status and Roadmap](/Users/justin/jcnagent/Agent/Projects/web-platform/yt-transcript/docs/project-status-and-roadmap.md)
+
+## Local scheduled queue
+
+For JCN operator runs, queued ingestion is handled by `scripts/process_queue.sh`.
+
+Default queue location:
+
+```text
+/Users/jcnagent/Agent/Ops/youtube-transcribe/inbox.txt
+```
+
+Add one YouTube URL per line. Blank lines and `# comments` are ignored. The processor removes attempted URLs from `inbox.txt`, appends successful runs to `processed.tsv`, appends failed runs to `failed.tsv`, and stores raw receipts under `logs/`.
+
+By default the script runs in notes-only mode (`--no-db`) and writes transcript notes into the Vault under:
+
+```text
+/Users/jcnagent/Agent/Vault/50 - Content & Ideas/Transcripts/YouTube/<year>/
+```
+
+The paths can be overridden with `YT_TRANSCRIPT_QUEUE_DIR`, `YT_TRANSCRIPT_NOTES_DIR`, and `YT_TRANSCRIPT_NOTES_SUBDIR`.
+
+OpenClaw cron job `yt-transcript-queue-hourly` runs this processor once per hour on the Mac mini.
