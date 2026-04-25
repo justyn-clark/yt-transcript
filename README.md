@@ -15,11 +15,11 @@ Accepts a YouTube URL or video ID, retrieves the transcript through a three-tier
 
 ## Current Status
 
-As of 2026-04-15, the repository is in a healthy local state:
+As of 2026-04-25, the repository is in a healthy local state:
 
-- `.venv/bin/pytest -q` -> `49 passed`
+- `.venv/bin/pytest -q` -> `60 passed`
 - `.venv/bin/ruff check src tests` -> `All checks passed!`
-- `small check --strict` -> `Verification passed`
+- `pipx install git+https://github.com/justyn-clark/yt-transcript.git` -> installs the `yt-transcript` console command
 
 Important environment note: running `pytest` from the bare shell can fail if the project virtualenv is not active. Use the repo venv or activate it before verification.
 
@@ -115,6 +115,71 @@ yt-transcript youtube "https://youtu.be/VIDEO_ID" --open-note
 # Verbose logging
 yt-transcript -v youtube "https://youtu.be/VIDEO_ID"
 ```
+
+## Common workflows
+
+### I just want a transcript file
+
+Use notes-only mode. This avoids Postgres and writes a markdown note to the directory you choose.
+
+```bash
+export YT_TRANSCRIPT_NOTES_DIR="$HOME/Documents/yt-transcript-notes"
+yt-transcript youtube "https://youtu.be/VIDEO_ID" --no-db
+```
+
+The note is written under:
+
+```text
+$YT_TRANSCRIPT_NOTES_DIR/Transcripts/YouTube/<year>/
+```
+
+### I want to inspect the result in another script
+
+Use JSON output and skip persistence sinks you do not need.
+
+```bash
+yt-transcript youtube "https://youtu.be/VIDEO_ID" --no-db --no-notes --json > transcript.json
+```
+
+### I want a local searchable transcript service
+
+Use the database-backed mode and run the API server.
+
+```bash
+createdb yt_transcript
+alembic upgrade head
+yt-transcript youtube "https://youtu.be/VIDEO_ID" --no-notes
+python -m yt_transcript.api.server
+```
+
+Then fetch metadata or content from the HTTP API:
+
+```bash
+curl http://127.0.0.1:8420/v1/transcripts/by-source/VIDEO_ID/content
+```
+
+### I want a drop-folder queue
+
+Add one YouTube URL per line to the queue file, then run the processor manually or from cron/systemd/launchd.
+
+```bash
+mkdir -p "$HOME/.local/state/yt-transcript/queue"
+printf '%s\n' "https://youtu.be/VIDEO_ID" >> "$HOME/.local/state/yt-transcript/queue/inbox.txt"
+./scripts/process_queue.sh
+```
+
+Queue receipts are written beside `inbox.txt` as `processed.tsv`, `failed.tsv`, and per-run files under `logs/`.
+
+### I installed with pipx
+
+After installing from GitHub, the same CLI is available globally as `yt-transcript`.
+
+```bash
+pipx install git+https://github.com/justyn-clark/yt-transcript.git
+yt-transcript youtube "https://youtu.be/VIDEO_ID" --no-db
+```
+
+If the shell cannot find `yt-transcript`, run `pipx ensurepath` or add the pipx binary directory to `PATH`.
 
 ### Normalizing transcript notes
 
