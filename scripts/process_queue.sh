@@ -9,6 +9,7 @@ FAILED_FILE="${YT_TRANSCRIPT_FAILED_FILE:-$QUEUE_DIR/failed.tsv}"
 LOG_DIR="${YT_TRANSCRIPT_LOG_DIR:-$QUEUE_DIR/logs}"
 NOTES_DIR="${YT_TRANSCRIPT_NOTES_DIR:-$HOME/Documents/yt-transcript-notes}"
 NOTES_SUBDIR="${YT_TRANSCRIPT_NOTES_SUBDIR:-Transcripts/YouTube}"
+DATABASE_ENABLED="${YT_TRANSCRIPT_DATABASE_ENABLED:-false}"
 LOCK_DIR="$QUEUE_DIR/.process.lock"
 PYTHON_BIN="${YT_TRANSCRIPT_PYTHON:-python3}"
 CLI_BIN="${YT_TRANSCRIPT_CLI:-}"
@@ -27,6 +28,11 @@ fi
 
 mkdir -p "$QUEUE_DIR" "$LOG_DIR" "$NOTES_DIR"
 touch "$QUEUE_FILE" "$PROCESSED_FILE" "$FAILED_FILE"
+
+db_enabled=false
+case "$DATABASE_ENABLED" in
+  1|[Tt][Rr][Uu][Ee]|[Yy][Ee][Ss]|[Oo][Nn]) db_enabled=true ;;
+esac
 
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   echo "Another yt-transcript queue run is active; exiting."
@@ -61,15 +67,30 @@ while IFS= read -r url; do
   url_hash="$(printf '%s' "$url" | shasum -a 256 | cut -c1-12)"
   out_file="$LOG_DIR/$run_id.$url_hash.json"
   err_file="$LOG_DIR/$run_id.$url_hash.err"
+  parse_err_file="$LOG_DIR/$run_id.$url_hash.parse.err"
+  cli_args=(youtube "$url" --json)
+  if [[ "$db_enabled" != true ]]; then
+    cli_args+=(--no-db)
+  fi
 
-  if YT_TRANSCRIPT_DATABASE_ENABLED=false \
+  if YT_TRANSCRIPT_DATABASE_ENABLED="$DATABASE_ENABLED" \
      YT_TRANSCRIPT_NOTES_DIR="$NOTES_DIR" \
      YT_TRANSCRIPT_NOTES_SUBDIR="$NOTES_SUBDIR" \
-     "$CLI_BIN" youtube "$url" --no-db --json >"$out_file" 2>"$err_file"; then
-    parsed="$($PYTHON_BIN - "$out_file" <<'PY'
+     "$CLI_BIN" "${cli_args[@]}" >"$out_file" 2>"$err_file"; then
+    if parsed="$($PYTHON_BIN - "$out_file" "$db_enabled" 2>"$parse_err_file" <<'PY'
 import json, sys
 p = sys.argv[1]
+db_enabled = sys.argv[2] == "true"
 data = json.load(open(p))
+errors = []
+if data.get("status") != "done":
+    errors.append(f"status={data.get('status')}")
+if db_enabled and data.get("db_status") != "ok":
+    errors.append(f"db_status={data.get('db_status')}")
+if data.get("notes_status") != "ok":
+    errors.append(f"notes_status={data.get('notes_status')}")
+if errors:
+    raise SystemExit("; ".join(errors))
 fields = [
     data.get("source_id", ""),
     data.get("retrieval_method", ""),
@@ -79,9 +100,14 @@ fields = [
 ]
 print("\t".join(str(x).replace("\t", " ") for x in fields))
 PY
-)"
-    printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$url" "$parsed" >> "$PROCESSED_FILE"
-    echo "[$run_id] OK $url -> $parsed" | tee -a "$run_log"
+    )"; then
+      printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$url" "$parsed" >> "$PROCESSED_FILE"
+      echo "[$run_id] OK $url -> $parsed" | tee -a "$run_log"
+    else
+      msg="$(tr '\n' ' ' < "$parse_err_file" | cut -c1-500)"
+      printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$url" "$msg" >> "$FAILED_FILE"
+      echo "[$run_id] FAILED $url :: $msg" | tee -a "$run_log"
+    fi
   else
     msg="$(tr '\n' ' ' < "$err_file" | cut -c1-500)"
     if [[ -z "$msg" ]]; then msg="$(tr '\n' ' ' < "$out_file" | cut -c1-500)"; fi

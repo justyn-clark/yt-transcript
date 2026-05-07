@@ -358,6 +358,8 @@ By default the script runs in notes-only mode (`--no-db`) and writes transcript 
 $HOME/Documents/yt-transcript-notes/Transcripts/YouTube/<year>/
 ```
 
+Set `YT_TRANSCRIPT_DATABASE_ENABLED=true` to enable database persistence for queue runs. When enabled, the processor treats a non-`ok` DB or notes sink as a failed queue item instead of recording it as processed.
+
 Useful overrides:
 
 | Variable | Purpose |
@@ -365,6 +367,7 @@ Useful overrides:
 | `YT_TRANSCRIPT_QUEUE_DIR` | Directory containing `inbox.txt`, status TSVs, logs, and lock state |
 | `YT_TRANSCRIPT_NOTES_DIR` | Root directory for markdown note export |
 | `YT_TRANSCRIPT_NOTES_SUBDIR` | Subdirectory below `YT_TRANSCRIPT_NOTES_DIR` for transcript notes |
+| `YT_TRANSCRIPT_DATABASE_ENABLED` | Set to `true` to persist queue runs to Postgres; defaults to notes-only mode |
 | `YT_TRANSCRIPT_CLI` | Explicit path to the `yt-transcript` executable |
 | `YT_TRANSCRIPT_REPO_DIR` | Repository checkout path, used to discover `.venv/bin/yt-transcript` |
 
@@ -373,5 +376,6 @@ Example:
 ```bash
 YT_TRANSCRIPT_QUEUE_DIR="$HOME/.local/state/yt-transcript/queue" \
 YT_TRANSCRIPT_NOTES_DIR="$HOME/Documents/yt-transcript-notes" \
+YT_TRANSCRIPT_DATABASE_ENABLED=true \
 ./scripts/process_queue.sh
 ```
